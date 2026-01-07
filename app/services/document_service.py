@@ -64,7 +64,10 @@ class DocumentService:
 
         self.relevance_checker = (
             RelevanceChecker(
-                settings.gatekeeping.threshold, settings.gatekeeping.rejection_message
+                threshold=settings.gatekeeping.threshold,
+                rejection_message=settings.gatekeeping.rejection_message,
+                distance_metric=settings.vector_db.distance_metric,
+                vector_db_type=settings.vector_db.type,
             )
             if settings.gatekeeping.enabled
             else None
