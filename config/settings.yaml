@@ -1,0 +1,65 @@
+app:
+  name: "Document Query Answerer"
+  version: "1.0.0"
+  mode: "async"
+  max_concurrent_requests: 10
+  request_timeout: 300
+
+pdf_parser:
+  type: "pdfplumber"
+
+chunking:
+  strategy: "hierarchical"
+  chunk_size: 512
+  chunk_overlap: 50
+  preserve_structure: true
+
+embeddings:
+  type: "nomic_embed"
+  model_name: "nomic-embed-text-v1"
+  device: "cpu"
+  batch_size: 32
+  dimension: 768
+
+vector_db:
+  type: "chroma"
+  persist_directory: "./data/vector_db"
+  collection_name: "financial_documents"
+  distance_metric: "cosine"
+
+query_answering:
+  strategy: "rag"
+  top_k: 5
+  similarity_threshold: 0.3
+  llm:
+    provider: "ollama"
+    model: "mistral:7b-instruct"
+    base_url: "http://ollama:11434"
+    temperature: 0.0
+    max_tokens: 512
+    timeout: 60
+
+gatekeeping:
+  enabled: true
+  threshold: 0.3
+  rejection_message: "This query does not appear to be related to the document."
+
+queue:
+  broker: "redis://redis:6379/0"
+  result_backend: "redis://redis:6379/0"
+  worker_concurrency: 4
+  task_time_limit: 300
+
+storage:
+  type: "local"
+  upload_directory: "./data/uploads"
+  max_file_size_mb: 50
+
+database:
+  url: "sqlite:///./data/metadata.db"
+  echo: false
+
+logging:
+  level: "INFO"
+  format: "json"
+  file: "./logs/app.log"
