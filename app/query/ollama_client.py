@@ -1,6 +1,8 @@
-import httpx
 import logging
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
+import httpx
+
 from app.core.exceptions import LLMError
 
 logger = logging.getLogger(__name__)
@@ -11,18 +13,14 @@ class OllamaClient:
         self,
         base_url: str = "http://ollama:11434",
         model: str = "mistral:7b-instruct",
-        timeout: int = 60
+        timeout: int = 60,
     ):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
 
     async def generate(
-        self,
-        prompt: str,
-        temperature: float = 0.0,
-        max_tokens: int = 512,
-        **kwargs
+        self, prompt: str, temperature: float = 0.0, max_tokens: int = 512, **kwargs
     ) -> str:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -35,9 +33,9 @@ class OllamaClient:
                         "options": {
                             "temperature": temperature,
                             "num_predict": max_tokens,
-                            **kwargs
-                        }
-                    }
+                            **kwargs,
+                        },
+                    },
                 )
                 response.raise_for_status()
                 result = response.json()

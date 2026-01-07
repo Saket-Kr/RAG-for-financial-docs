@@ -1,20 +1,21 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import numpy as np
+
 from app.chunking.base import Chunk
 
 
 class BaseVectorDB(ABC):
     @abstractmethod
-    def add_documents(self, document_id: str, chunks: List[Chunk], embeddings: np.ndarray) -> None:
+    def add_documents(
+        self, document_id: str, chunks: List[Chunk], embeddings: np.ndarray
+    ) -> None:
         pass
 
     @abstractmethod
     def search(
-        self,
-        document_id: str,
-        query_embedding: np.ndarray,
-        top_k: int = 5
+        self, document_id: str, query_embedding: np.ndarray, top_k: int = 5
     ) -> List[Dict[str, Any]]:
         pass
 

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import BinaryIO
+
 from app.core.exceptions import StorageError
 
 
@@ -31,15 +32,17 @@ class LocalStorage(BaseStorage):
         try:
             safe_filename = self._sanitize_filename(filename)
             file_path = self.upload_directory / safe_filename
-            
+
             if file_path.exists():
                 counter = 1
                 base_name = file_path.stem
                 extension = file_path.suffix
                 while file_path.exists():
-                    file_path = self.upload_directory / f"{base_name}_{counter}{extension}"
+                    file_path = (
+                        self.upload_directory / f"{base_name}_{counter}{extension}"
+                    )
                     counter += 1
-            
+
             file_path.write_bytes(file_content)
             return str(file_path)
         except Exception as e:
@@ -50,10 +53,10 @@ class LocalStorage(BaseStorage):
             path = Path(file_path)
             if not path.is_absolute():
                 path = self.upload_directory / path
-            
+
             if not path.exists():
                 raise StorageError(f"File not found: {file_path}")
-            
+
             return path.read_bytes()
         except Exception as e:
             raise StorageError(f"Failed to read file: {str(e)}") from e
@@ -63,7 +66,7 @@ class LocalStorage(BaseStorage):
             path = Path(file_path)
             if not path.is_absolute():
                 path = self.upload_directory / path
-            
+
             if path.exists():
                 path.unlink()
         except Exception as e:
@@ -80,6 +83,7 @@ class LocalStorage(BaseStorage):
 
     def _sanitize_filename(self, filename: str) -> str:
         import re
-        filename = re.sub(r'[^\w\s.-]', '', filename)
-        filename = re.sub(r'\s+', '_', filename)
+
+        filename = re.sub(r"[^\w\s.-]", "", filename)
+        filename = re.sub(r"\s+", "_", filename)
         return filename[:255]

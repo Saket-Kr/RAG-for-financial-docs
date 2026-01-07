@@ -1,11 +1,12 @@
 from typing import Dict, Type
+
 from app.chunking.base import BaseChunker
 from app.chunking.strategies import (
     FixedSizeChunker,
-    SentenceChunker,
     HierarchicalChunker,
+    SemanticChunker,
+    SentenceChunker,
     SlidingWindowChunker,
-    SemanticChunker
 )
 from app.core.exceptions import ValidationError
 
@@ -25,13 +26,13 @@ class ChunkingFactory:
         strategy: str,
         chunk_size: int = 512,
         chunk_overlap: int = 50,
-        embedder=None
+        embedder=None,
     ) -> BaseChunker:
         if strategy not in cls._chunkers:
             raise ValidationError(f"Unknown chunking strategy: {strategy}")
-        
+
         chunker_class = cls._chunkers[strategy]
-        
+
         if strategy == "semantic":
             return chunker_class(chunk_size, chunk_overlap, embedder)
         else:

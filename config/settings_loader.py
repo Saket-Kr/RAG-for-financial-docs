@@ -1,7 +1,8 @@
 import os
-import yaml
-from typing import Any, Dict
 from pathlib import Path
+from typing import Any, Dict
+
+import yaml
 
 
 def load_yaml_config(config_path: str) -> Dict[str, Any]:
@@ -27,6 +28,6 @@ def substitute_env_variables(value: Any) -> Any:
 def load_settings(config_path: str = None) -> Dict[str, Any]:
     if config_path is None:
         config_path = Path(__file__).parent / "settings.yaml"
-    
+
     config = load_yaml_config(str(config_path))
     return substitute_env_variables(config)

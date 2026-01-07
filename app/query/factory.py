@@ -1,13 +1,14 @@
 from typing import Dict, Type
+
+from app.core.exceptions import QueryError
 from app.query.base import BaseQueryEngine
+from app.query.ollama_client import OllamaClient
 from app.query.strategies import (
     DirectRetrievalStrategy,
-    RAGStrategy,
     MultiQueryStrategy,
-    RerankingStrategy
+    RAGStrategy,
+    RerankingStrategy,
 )
-from app.query.ollama_client import OllamaClient
-from app.core.exceptions import QueryError
 
 
 class QueryEngineFactory:
@@ -24,13 +25,13 @@ class QueryEngineFactory:
         strategy: str,
         ollama_client: OllamaClient,
         temperature: float = 0.0,
-        max_tokens: int = 512
+        max_tokens: int = 512,
     ) -> BaseQueryEngine:
         if strategy not in cls._strategies:
             raise QueryError(f"Unknown query strategy: {strategy}")
-        
+
         strategy_class = cls._strategies[strategy]
-        
+
         if strategy == "direct_retrieval":
             return strategy_class()
         elif strategy == "rag":
@@ -38,10 +39,14 @@ class QueryEngineFactory:
         elif strategy == "multi_query":
             return strategy_class(ollama_client, temperature, max_tokens)
         elif strategy == "reranking":
-            return strategy_class(ollama_client, temperature, max_tokens, top_k_rerank=3)
+            return strategy_class(
+                ollama_client, temperature, max_tokens, top_k_rerank=3
+            )
         else:
             return strategy_class()
 
     @classmethod
-    def register_strategy(cls, name: str, strategy_class: Type[BaseQueryEngine]) -> None:
+    def register_strategy(
+        cls, name: str, strategy_class: Type[BaseQueryEngine]
+    ) -> None:
         cls._strategies[name] = strategy_class

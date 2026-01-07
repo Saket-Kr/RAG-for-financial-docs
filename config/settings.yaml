@@ -16,10 +16,12 @@ chunking:
 
 embeddings:
   type: "nomic_embed"
-  model_name: "nomic-embed-text-v1"
+  model_name: "nomic-embed-text:latest"
   device: "cpu"
   batch_size: 32
   dimension: 768
+  api_url: "http://localhost:11434"
+  api_key: ""
 
 vector_db:
   type: "chroma"

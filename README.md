@@ -52,6 +52,15 @@ docker exec -it document-qa-ollama ollama pull nomic-embed-text
 
 ### Local Development
 
+0. Create Environment (conda preferred)
+```bash
+conda create -n docqa python=3.11 -y
+conda activate docqa
+# (Optional but recommended) Update pip and conda, install common build tools:
+python -m pip install --upgrade pip
+conda install -c conda-forge setuptools wheel --yes
+```
+
 1. Install dependencies:
 
 ```bash

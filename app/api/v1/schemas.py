@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class DocumentUploadResponse(BaseModel):
@@ -10,7 +11,12 @@ class DocumentUploadResponse(BaseModel):
 
 
 class QueryRequest(BaseModel):
-    query: str = Field(..., min_length=1, max_length=10000, description="The question to ask about the document")
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,
+        description="The question to ask about the document",
+    )
 
 
 class Source(BaseModel):

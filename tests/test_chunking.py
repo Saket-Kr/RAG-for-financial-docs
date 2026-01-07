@@ -1,4 +1,5 @@
 import pytest
+
 from app.chunking.factory import ChunkingFactory
 from app.chunking.strategies import FixedSizeChunker
 

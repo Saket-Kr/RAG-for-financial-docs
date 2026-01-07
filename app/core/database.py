@@ -1,8 +1,19 @@
-from sqlalchemy import create_engine, Column, String, Integer, DateTime, Text, Float, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
 from datetime import datetime
 from typing import Optional
+
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    String,
+    Text,
+    create_engine,
+)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, sessionmaker
+
 from app.core.config import Settings
 
 Base = declarative_base()
@@ -37,9 +48,15 @@ class Database:
         self.engine = create_engine(
             settings.database.url,
             echo=settings.database.echo,
-            connect_args={"check_same_thread": False} if "sqlite" in settings.database.url else {}
+            connect_args=(
+                {"check_same_thread": False}
+                if "sqlite" in settings.database.url
+                else {}
+            ),
         )
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        self.SessionLocal = sessionmaker(
+            autocommit=False, autoflush=False, bind=self.engine
+        )
 
     def init_db(self):
         Base.metadata.create_all(bind=self.engine)

@@ -1,8 +1,10 @@
+import uuid
+
 import pytest
+
+from app.chunking.base import Chunk
 from app.query.factory import QueryEngineFactory
 from app.query.ollama_client import OllamaClient
-from app.chunking.base import Chunk
-import uuid
 
 
 def test_query_engine_factory():
@@ -13,16 +15,10 @@ def test_query_engine_factory():
 
 def test_direct_retrieval_strategy():
     from app.query.strategies import DirectRetrievalStrategy
-    
+
     strategy = DirectRetrievalStrategy()
-    chunks = [
-        Chunk(
-            text="Test content",
-            chunk_id=str(uuid.uuid4()),
-            metadata={}
-        )
-    ]
-    
+    chunks = [Chunk(text="Test content", chunk_id=str(uuid.uuid4()), metadata={})]
+
     response = strategy.answer("test query", chunks)
     assert response.answer is not None
     assert len(response.sources) > 0

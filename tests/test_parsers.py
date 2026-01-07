@@ -1,6 +1,7 @@
 import pytest
-from app.parsers.factory import ParserFactory
+
 from app.core.exceptions import ParserError
+from app.parsers.factory import ParserFactory
 
 
 def test_parser_factory():

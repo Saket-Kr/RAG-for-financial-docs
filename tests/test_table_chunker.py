@@ -1,18 +1,16 @@
 import pytest
+
 from app.chunking.table_chunker import TableChunker
 from app.parsers.base import Table
 
 
 def test_table_chunker_basic():
     table = Table(
-        data=[
-            ["2024-01-15", "$5,000", "Paid"],
-            ["2024-02-15", "$5,000", "Pending"]
-        ],
+        data=[["2024-01-15", "$5,000", "Paid"], ["2024-02-15", "$5,000", "Pending"]],
         headers=["Date", "Amount", "Status"],
-        metadata={"page": 3}
+        metadata={"page": 3},
     )
-    
+
     chunker = TableChunker(context_window=200)
     chunk = chunker.chunk_table(
         table=table,
@@ -20,9 +18,9 @@ def test_table_chunker_basic():
         context_after="Late fees apply.",
         table_index=0,
         section_title="Payment Terms",
-        page_number=3
+        page_number=3,
     )
-    
+
     assert chunk.metadata["chunk_type"] == "table"
     assert chunk.metadata["table_index"] == 0
     assert chunk.metadata["page_number"] == 3
@@ -36,14 +34,11 @@ def test_table_chunker_basic():
 
 def test_table_chunker_no_headers():
     table = Table(
-        data=[
-            ["2024-01-15", "$5,000", "Paid"],
-            ["2024-02-15", "$5,000", "Pending"]
-        ],
+        data=[["2024-01-15", "$5,000", "Paid"], ["2024-02-15", "$5,000", "Pending"]],
         headers=None,
-        metadata={}
+        metadata={},
     )
-    
+
     chunker = TableChunker()
     chunk = chunker.chunk_table(
         table=table,
@@ -51,9 +46,9 @@ def test_table_chunker_no_headers():
         context_after="",
         table_index=1,
         section_title="",
-        page_number=1
+        page_number=1,
     )
-    
+
     assert chunk.metadata["has_headers"] is False
     assert "Row 1" in chunk.text
     assert "Row 2" in chunk.text
@@ -63,9 +58,9 @@ def test_table_chunker_metadata_enrichment():
     table = Table(
         data=[["Value1", "Value2"]],
         headers=["Column1", "Column2"],
-        metadata={"page": 5}
+        metadata={"page": 5},
     )
-    
+
     chunker = TableChunker()
     chunk = chunker.chunk_table(
         table=table,
@@ -73,9 +68,9 @@ def test_table_chunker_metadata_enrichment():
         context_after="Context after",
         table_index=2,
         section_title="Financial Summary",
-        page_number=5
+        page_number=5,
     )
-    
+
     metadata = chunk.metadata
     assert metadata["chunk_type"] == "table"
     assert metadata["table_index"] == 2

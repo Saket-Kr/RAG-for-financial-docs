@@ -1,9 +1,10 @@
-import logging
 import json
+import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
-from datetime import datetime
+
 from app.core.config import Settings
 
 
@@ -30,7 +31,7 @@ class JSONFormatter(logging.Formatter):
 
 def setup_logging(settings: Settings) -> None:
     log_level = getattr(logging, settings.logging.level.upper(), logging.INFO)
-    
+
     log_file = Path(settings.logging.file)
     log_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -51,8 +52,4 @@ def setup_logging(settings: Settings) -> None:
     console_handler.setFormatter(formatter)
     handlers.append(console_handler)
 
-    logging.basicConfig(
-        level=log_level,
-        handlers=handlers,
-        force=True
-    )
+    logging.basicConfig(level=log_level, handlers=handlers, force=True)

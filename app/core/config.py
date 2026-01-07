@@ -2,9 +2,10 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
-from config.settings_loader import load_settings
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from config.settings_loader import load_settings
 
 
 class LLMSettings(BaseSettings):
@@ -40,10 +41,8 @@ class EmbeddingSettings(BaseSettings):
     device: str = "cpu"
     batch_size: int = 32
     dimension: int = 768
-    
-    model_config = SettingsConfigDict(
-        protected_namespaces=('settings_',)
-    )
+
+    model_config = SettingsConfigDict(protected_namespaces=("settings_",))
 
 
 class VectorDBSettings(BaseSettings):
@@ -97,7 +96,9 @@ class Settings(BaseSettings):
     chunking: ChunkingSettings = Field(default_factory=ChunkingSettings)
     embeddings: EmbeddingSettings = Field(default_factory=EmbeddingSettings)
     vector_db: VectorDBSettings = Field(default_factory=VectorDBSettings)
-    query_answering: QueryAnsweringSettings = Field(default_factory=QueryAnsweringSettings)
+    query_answering: QueryAnsweringSettings = Field(
+        default_factory=QueryAnsweringSettings
+    )
     gatekeeping: GatekeepingSettings = Field(default_factory=GatekeepingSettings)
     queue: QueueSettings = Field(default_factory=QueueSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
@@ -107,11 +108,11 @@ class Settings(BaseSettings):
     @classmethod
     def from_yaml(cls, config_path: Optional[str] = None) -> "Settings":
         raw_config = load_settings(config_path)
-        
+
         # Extract llm from query_answering to avoid duplicate argument
         query_answering_config = raw_config.get("query_answering", {}).copy()
         llm_config = query_answering_config.pop("llm", {})
-        
+
         return cls(
             app=AppSettings(**raw_config.get("app", {})),
             pdf_parser=PDFParserSettings(**raw_config.get("pdf_parser", {})),
@@ -119,17 +120,13 @@ class Settings(BaseSettings):
             embeddings=EmbeddingSettings(**raw_config.get("embeddings", {})),
             vector_db=VectorDBSettings(**raw_config.get("vector_db", {})),
             query_answering=QueryAnsweringSettings(
-                **query_answering_config,
-                llm=LLMSettings(**llm_config)
+                **query_answering_config, llm=LLMSettings(**llm_config)
             ),
             gatekeeping=GatekeepingSettings(**raw_config.get("gatekeeping", {})),
             queue=QueueSettings(**raw_config.get("queue", {})),
             storage=StorageSettings(**raw_config.get("storage", {})),
             database=DatabaseSettings(**raw_config.get("database", {})),
-            logging=LoggingSettings(**raw_config.get("logging", {}))
+            logging=LoggingSettings(**raw_config.get("logging", {})),
         )
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_nested_delimiter="__"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")

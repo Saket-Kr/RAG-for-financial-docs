@@ -1,8 +1,10 @@
-from typing import Optional, List, Dict, Any
-from sqlalchemy.orm import Session
-from datetime import datetime
 import uuid
-from app.core.database import Document, Query, Database
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy.orm import Session
+
+from app.core.database import Database, Document, Query
 from app.core.exceptions import DocumentNotFoundError
 
 
@@ -11,10 +13,7 @@ class MetadataService:
         self.db = db
 
     def create_document(
-        self,
-        filename: str,
-        file_path: str,
-        metadata: Optional[Dict[str, Any]] = None
+        self, filename: str, file_path: str, metadata: Optional[Dict[str, Any]] = None
     ) -> Document:
         document_id = str(uuid.uuid4())
         document = Document(
@@ -22,9 +21,9 @@ class MetadataService:
             filename=filename,
             file_path=file_path,
             status="pending",
-            metadata_json=metadata
+            metadata_json=metadata,
         )
-        
+
         session = self.db.get_session()
         try:
             session.add(document)
@@ -37,7 +36,9 @@ class MetadataService:
     def get_document(self, document_id: str) -> Document:
         session = self.db.get_session()
         try:
-            document = session.query(Document).filter(Document.id == document_id).first()
+            document = (
+                session.query(Document).filter(Document.id == document_id).first()
+            )
             if not document:
                 raise DocumentNotFoundError(f"Document {document_id} not found")
             return document
@@ -47,7 +48,9 @@ class MetadataService:
     def update_document_status(self, document_id: str, status: str) -> None:
         session = self.db.get_session()
         try:
-            document = session.query(Document).filter(Document.id == document_id).first()
+            document = (
+                session.query(Document).filter(Document.id == document_id).first()
+            )
             if not document:
                 raise DocumentNotFoundError(f"Document {document_id} not found")
             document.status = status
@@ -56,10 +59,14 @@ class MetadataService:
         finally:
             session.close()
 
-    def update_document_metadata(self, document_id: str, metadata: Dict[str, Any]) -> None:
+    def update_document_metadata(
+        self, document_id: str, metadata: Dict[str, Any]
+    ) -> None:
         session = self.db.get_session()
         try:
-            document = session.query(Document).filter(Document.id == document_id).first()
+            document = (
+                session.query(Document).filter(Document.id == document_id).first()
+            )
             if not document:
                 raise DocumentNotFoundError(f"Document {document_id} not found")
             document.metadata_json = metadata
@@ -71,7 +78,9 @@ class MetadataService:
     def delete_document(self, document_id: str) -> None:
         session = self.db.get_session()
         try:
-            document = session.query(Document).filter(Document.id == document_id).first()
+            document = (
+                session.query(Document).filter(Document.id == document_id).first()
+            )
             if not document:
                 raise DocumentNotFoundError(f"Document {document_id} not found")
             session.delete(document)
@@ -91,15 +100,15 @@ class MetadataService:
         document_id: str,
         query_text: str,
         answer: Optional[str] = None,
-        confidence: Optional[float] = None
+        confidence: Optional[float] = None,
     ) -> Query:
         query = Query(
             document_id=document_id,
             query_text=query_text,
             answer=answer,
-            confidence=confidence
+            confidence=confidence,
         )
-        
+
         session = self.db.get_session()
         try:
             session.add(query)

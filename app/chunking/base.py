@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -14,5 +14,7 @@ class Chunk:
 
 class BaseChunker(ABC):
     @abstractmethod
-    def chunk(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> List[Chunk]:
+    def chunk(
+        self, text: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> List[Chunk]:
         pass

@@ -1,6 +1,7 @@
 import pytest
-from app.embeddings.factory import EmbeddingFactory
+
 from app.core.exceptions import EmbeddingError
+from app.embeddings.factory import EmbeddingFactory
 
 
 def test_embedding_factory():
