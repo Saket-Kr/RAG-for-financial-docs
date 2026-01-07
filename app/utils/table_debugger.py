@@ -48,6 +48,11 @@ class TableDebugger:
             self.settings.vector_db.persist_directory,
             self.settings.vector_db.collection_name,
             self.settings.vector_db.distance_metric,
+            host=getattr(self.settings.vector_db, "host", "localhost"),
+            port=getattr(self.settings.vector_db, "port", 6333),
+            use_global_collection=getattr(
+                self.settings.vector_db, "use_global_collection", True
+            ),
         )
 
         embedder = EmbeddingFactory.create_embedder(
@@ -99,6 +104,11 @@ class TableDebugger:
             self.settings.vector_db.persist_directory,
             self.settings.vector_db.collection_name,
             self.settings.vector_db.distance_metric,
+            host=getattr(self.settings.vector_db, "host", "localhost"),
+            port=getattr(self.settings.vector_db, "port", 6333),
+            use_global_collection=getattr(
+                self.settings.vector_db, "use_global_collection", True
+            ),
         )
 
         query_embedding = embedder.embed_query(query)

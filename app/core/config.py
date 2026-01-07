@@ -1,11 +1,9 @@
-from pathlib import Path
+
 from typing import Optional
 
-import yaml
+from config.settings_loader import load_settings
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from config.settings_loader import load_settings
 
 
 class LLMSettings(BaseSettings):
@@ -37,19 +35,24 @@ class PDFParserSettings(BaseSettings):
 
 class EmbeddingSettings(BaseSettings):
     type: str = "nomic_embed"
-    model_name: str = "nomic-embed-text-v1"
+    model_name: str = "nomic-embed-text:latest"
     device: str = "cpu"
     batch_size: int = 32
     dimension: int = 768
+    api_url: str = "http://ollama:11434/"
+    api_key: str = ""
 
     model_config = SettingsConfigDict(protected_namespaces=("settings_",))
 
 
 class VectorDBSettings(BaseSettings):
-    type: str = "chroma"
+    type: str = "qdrant"
     persist_directory: str = "./data/vector_db"
     collection_name: str = "financial_documents"
     distance_metric: str = "cosine"
+    host: str = "qdrant"
+    port: int = 6333
+    use_global_collection: bool = True
 
 
 class GatekeepingSettings(BaseSettings):
@@ -88,6 +91,8 @@ class AppSettings(BaseSettings):
     mode: str = "async"
     max_concurrent_requests: int = 10
     request_timeout: int = 300
+    env: str = "development"
+    debug: bool = False
 
 
 class Settings(BaseSettings):

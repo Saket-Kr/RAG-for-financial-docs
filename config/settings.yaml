@@ -24,10 +24,13 @@ embeddings:
   api_key: ""
 
 vector_db:
-  type: "chroma"
+  type: "qdrant"
   persist_directory: "./data/vector_db"
   collection_name: "financial_documents"
   distance_metric: "cosine"
+  host: "localhost"
+  port: 6333
+  use_global_collection: true
 
 query_answering:
   strategy: "rag"
@@ -36,7 +39,7 @@ query_answering:
   llm:
     provider: "ollama"
     model: "mistral:7b-instruct"
-    base_url: "http://ollama:11434"
+    base_url: "http://localhost:11434"
     temperature: 0.0
     max_tokens: 512
     timeout: 60

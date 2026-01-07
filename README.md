@@ -7,7 +7,7 @@ A production-grade document query answering system for financial documents using
 - PDF parsing with multiple parser backends (pdfplumber, PyMuPDF, unstructured)
 - Intelligent document chunking (hierarchical, semantic, sentence-based)
 - Nomic Embed for embeddings
-- Vector database support (Chroma, FAISS)
+- Vector database support (Chroma, FAISS, Qdrant)
 - Ollama integration for local LLM inference
 - FastAPI REST API
 - SQLite metadata storage
@@ -49,6 +49,8 @@ docker exec -it document-qa-ollama ollama pull nomic-embed-text
 ```
 
 5. Access API at `http://localhost:8000`
+
+Qdrant vector database will be available at `http://localhost:6333` (inside Docker network as `http://qdrant:6333`).
 
 ### Local Development
 

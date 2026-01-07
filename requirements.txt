@@ -12,3 +12,4 @@ chromadb==0.4.18
 faiss-cpu==1.7.4
 numpy==1.24.3
 python-multipart==0.0.6
+qdrant-client==1.9.1

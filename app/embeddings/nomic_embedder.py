@@ -3,7 +3,6 @@ from typing import List, Optional
 
 import httpx
 import numpy as np
-
 from app.core.exceptions import EmbeddingError
 from app.embeddings.base import BaseEmbedder
 
@@ -46,7 +45,6 @@ class NomicEmbedder(BaseEmbedder):
         self.batch_size = batch_size
         self._dimension = 768
         base_url = api_url
-        # Remove trailing slash if present
         base_url = base_url.rstrip("/")
         self.base_url = base_url
         self.single_embed_url = f"{base_url}/api/embeddings"
@@ -79,11 +77,6 @@ class NomicEmbedder(BaseEmbedder):
                 headers["Authorization"] = f"Bearer {self.api_key}"
 
             payload = {"model": self.model_name, "prompt": prompt}
-
-            logger.debug(
-                f"Making single embedding request to {self.single_embed_url} "
-                f"for prompt length: {len(prompt)}"
-            )
 
             with httpx.Client(timeout=self.timeout) as client:
                 response = client.post(
@@ -119,34 +112,45 @@ class NomicEmbedder(BaseEmbedder):
                         f"Invalid embedding format: expected list of numbers"
                     )
 
-                logger.debug(
-                    f"Successfully received embedding, dimension: {len(embedding)}"
-                )
                 return embedding
 
         except httpx.TimeoutException as e:
-            logger.error(f"Timeout calling API: {str(e)}")
-            raise EmbeddingError(
-                f"Request timeout after {self.timeout}s while calling API"
-            ) from e
-        except httpx.HTTPStatusError as e:
-            logger.error(
-                f"HTTP error calling API: {e.response.status_code} - {e.response.text}"
+            msg = (
+                f"Embedding API timeout "
+                f"[op=single, url={self.single_embed_url}, model={self.model_name}, "
+                f"timeout={self.timeout}s]: {e}"
             )
-            raise EmbeddingError(
-                f"HTTP {e.response.status_code} error from API: {e.response.text}"
-            ) from e
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
+        except httpx.HTTPStatusError as e:
+            msg = (
+                f"Embedding API HTTP error "
+                f"[op=single, url={self.single_embed_url}, model={self.model_name}, "
+                f"status={e.response.status_code}]: {e.response.text}"
+            )
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
         except httpx.RequestError as e:
-            logger.error(f"Request error calling API: {str(e)}")
-            raise EmbeddingError(f"Failed to connect to API: {str(e)}") from e
+            msg = (
+                f"Embedding API connection error "
+                f"[op=single, url={self.single_embed_url}, model={self.model_name}]: {e}"
+            )
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
         except ValueError as e:
-            logger.error(f"Invalid JSON response from API: {str(e)}")
-            raise EmbeddingError(f"Invalid response format from API: {str(e)}") from e
+            msg = (
+                f"Embedding API invalid response "
+                f"[op=single, url={self.single_embed_url}, model={self.model_name}]: {e}"
+            )
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
         except Exception as e:
-            logger.error(f"Unexpected error calling API: {str(e)}", exc_info=True)
-            raise EmbeddingError(
-                f"Unexpected error generating embedding: {str(e)}"
-            ) from e
+            msg = (
+                f"Embedding API unexpected error "
+                f"[op=single, url={self.single_embed_url}, model={self.model_name}]: {e}"
+            )
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
 
     def _make_batch_embedding_request(self, texts: List[str]) -> List[List[float]]:
         """
@@ -171,11 +175,6 @@ class NomicEmbedder(BaseEmbedder):
                 headers["Authorization"] = f"Bearer {self.api_key}"
 
             payload = {"model": self.model_name, "input": texts}
-
-            logger.debug(
-                f"Making batch embedding request to {self.batch_embed_url} "
-                f"for {len(texts)} texts"
-            )
 
             with httpx.Client(timeout=self.timeout) as client:
                 response = client.post(
@@ -215,32 +214,48 @@ class NomicEmbedder(BaseEmbedder):
                             f"Invalid embedding format at index {i}: expected list of numbers"
                         )
 
-                logger.debug(f"Successfully received {len(embeddings)} embeddings")
                 return embeddings
 
         except httpx.TimeoutException as e:
-            logger.error(f"Timeout calling API: {str(e)}")
-            raise EmbeddingError(
-                f"Request timeout after {self.timeout}s while calling API"
-            ) from e
-        except httpx.HTTPStatusError as e:
-            logger.error(
-                f"HTTP error calling API: {e.response.status_code} - {e.response.text}"
+            msg = (
+                f"Embedding API timeout "
+                f"[op=batch, url={self.batch_embed_url}, model={self.model_name}, "
+                f"batch_size={len(texts)}, timeout={self.timeout}s]: {e}"
             )
-            raise EmbeddingError(
-                f"HTTP {e.response.status_code} error from API: {e.response.text}"
-            ) from e
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
+        except httpx.HTTPStatusError as e:
+            msg = (
+                f"Embedding API HTTP error "
+                f"[op=batch, url={self.batch_embed_url}, model={self.model_name}, "
+                f"batch_size={len(texts)}, status={e.response.status_code}]: {e.response.text}"
+            )
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
         except httpx.RequestError as e:
-            logger.error(f"Request error calling API: {str(e)}")
-            raise EmbeddingError(f"Failed to connect to API: {str(e)}") from e
+            msg = (
+                f"Embedding API connection error "
+                f"[op=batch, url={self.batch_embed_url}, model={self.model_name}, "
+                f"batch_size={len(texts)}]: {e}"
+            )
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
         except ValueError as e:
-            logger.error(f"Invalid JSON response from API: {str(e)}")
-            raise EmbeddingError(f"Invalid response format from API: {str(e)}") from e
+            msg = (
+                f"Embedding API invalid response "
+                f"[op=batch, url={self.batch_embed_url}, model={self.model_name}, "
+                f"batch_size={len(texts)}]: {e}"
+            )
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
         except Exception as e:
-            logger.error(f"Unexpected error calling API: {str(e)}", exc_info=True)
-            raise EmbeddingError(
-                f"Unexpected error generating embeddings: {str(e)}"
-            ) from e
+            msg = (
+                f"Embedding API unexpected error "
+                f"[op=batch, url={self.batch_embed_url}, model={self.model_name}, "
+                f"batch_size={len(texts)}]: {e}"
+            )
+            logger.error(msg, exc_info=True)
+            raise EmbeddingError(msg) from e
 
     def embed_texts(self, texts: List[str]) -> np.ndarray:
         """
@@ -263,7 +278,7 @@ class NomicEmbedder(BaseEmbedder):
                 batch = texts[i : i + self.batch_size]
                 batch_num = (i // self.batch_size) + 1
 
-                logger.debug(
+                logger.info(
                     f"Processing batch {batch_num}/{total_batches} "
                     f"({len(batch)} texts)"
                 )
@@ -273,10 +288,6 @@ class NomicEmbedder(BaseEmbedder):
                 embeddings.extend(batch_embeddings)
 
             result = np.array(embeddings)
-            logger.debug(
-                f"Generated embeddings for {len(texts)} texts, "
-                f"shape: {result.shape}"
-            )
             return result
 
         except EmbeddingError:
@@ -299,13 +310,9 @@ class NomicEmbedder(BaseEmbedder):
             raise EmbeddingError("Query text cannot be empty")
 
         try:
-            logger.debug(f"Generating query embedding for query length: {len(query)}")
-
             # Use single embedding endpoint
             embedding_list = self._make_single_embedding_request(query)
             embedding = np.array(embedding_list)
-
-            logger.debug(f"Generated query embedding, shape: {embedding.shape}")
             return embedding
 
         except EmbeddingError:

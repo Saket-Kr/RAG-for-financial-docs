@@ -8,6 +8,7 @@ from app.core.config import Settings
 from app.core.exceptions import (
     DocumentNotFoundError,
     DocumentProcessingError,
+    EmbeddingError,
     GatekeepingError,
 )
 from app.embeddings.factory import EmbeddingFactory
@@ -36,16 +37,17 @@ class DocumentService:
 
         self.parser = ParserFactory.create_parser(settings.pdf_parser.type)
         self.embedder = EmbeddingFactory.create_embedder(
-            settings.embeddings.type,
-            settings.embeddings.model_name,
-            settings.embeddings.device,
-            settings.embeddings.batch_size,
+            embedder_type=settings.embeddings.type,
+            settings=settings
         )
         self.vector_db = VectorDBFactory.create_db(
-            settings.vector_db.type,
-            settings.vector_db.persist_directory,
-            settings.vector_db.collection_name,
-            settings.vector_db.distance_metric,
+            db_type=settings.vector_db.type,
+            persist_directory=settings.vector_db.persist_directory,
+            collection_name=settings.vector_db.collection_name,
+            distance_metric=settings.vector_db.distance_metric,
+            host=settings.vector_db.host,
+            port=settings.vector_db.port,
+            use_global_collection=settings.vector_db.use_global_collection,
         )
 
         ollama_client = OllamaClient(
@@ -152,18 +154,24 @@ class DocumentService:
                 )
                 return document.id
 
+            except EmbeddingError as e:
+                self.metadata_service.update_document_status(document.id, "failed")
+                raise DocumentProcessingError(str(e)) from e
             except Exception as e:
                 self.metadata_service.update_document_status(document.id, "failed")
-                logger.error(f"Failed to process document {document.id}: {str(e)}")
+                logger.error(
+                    f"Failed to process document {document.id}: {str(e)}",
+                    exc_info=True,
+                )
                 raise DocumentProcessingError(
                     f"Document processing failed: {str(e)}"
                 ) from e
 
+        except DocumentProcessingError:
+            raise
         except Exception as e:
-            logger.error(f"Error in process_document: {str(e)}")
-            raise DocumentProcessingError(
-                f"Failed to process document: {str(e)}"
-            ) from e
+            logger.error(f"Error in process_document: {str(e)}", exc_info=True)
+            raise DocumentProcessingError(f"Failed to process document: {str(e)}") from e
 
     async def query_document(self, document_id: str, query: str) -> Dict[str, Any]:
         try:
@@ -227,7 +235,7 @@ class DocumentService:
         except DocumentNotFoundError:
             raise
         except Exception as e:
-            logger.error(f"Error querying document {document_id}: {str(e)}")
+            logger.error(f"Error querying document {document_id}: {str(e)}", exc_info=True)
             raise DocumentProcessingError(f"Failed to query document: {str(e)}") from e
 
     def _extract_table_context(
