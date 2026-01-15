@@ -17,9 +17,11 @@ def mock_settings():
     settings.pdf_parser.type = "pdfplumber"
     settings.embeddings = Mock()
     settings.embeddings.type = "nomic"
-    settings.embeddings.model_name = "nomic-embed-text-v1"
+    settings.embeddings.model_name = "nomic-embed-text:latest"
     settings.embeddings.device = "cpu"
-    settings.embeddings.batch_size = 32
+    settings.embeddings.batch_size = 8
+    settings.embeddings.api_url = "http://localhost:11434"
+    settings.embeddings.api_key = ""
     settings.vector_db = Mock()
     settings.vector_db.type = "chroma"
     settings.vector_db.persist_directory = "./test_vector_db"

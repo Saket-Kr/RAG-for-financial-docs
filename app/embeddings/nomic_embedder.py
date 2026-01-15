@@ -5,6 +5,7 @@ import httpx
 import numpy as np
 from app.core.exceptions import EmbeddingError
 from app.embeddings.base import BaseEmbedder
+from app.utils.retry import retry_http
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class NomicEmbedder(BaseEmbedder):
         self,
         model_name: str = "nomic-embed-text:latest",
         device: str = "cpu",
-        batch_size: int = 32,
+        batch_size: int = 8,
         api_url: Optional[str] = None,
         api_key: Optional[str] = None,
         timeout: float = DEFAULT_TIMEOUT,
@@ -57,6 +58,7 @@ class NomicEmbedder(BaseEmbedder):
             f"base_url={self.base_url}, batch_size={batch_size}"
         )
 
+    @retry_http(max_retries=3, initial_backoff=1.0)
     def _make_single_embedding_request(self, prompt: str) -> List[float]:
         """
         Make HTTP request to single embedding API endpoint.
@@ -152,9 +154,13 @@ class NomicEmbedder(BaseEmbedder):
             logger.error(msg, exc_info=True)
             raise EmbeddingError(msg) from e
 
+    @retry_http(max_retries=3, initial_backoff=1.0)
     def _make_batch_embedding_request(self, texts: List[str]) -> List[List[float]]:
         """
-        Make HTTP request to batch embedding API endpoint.
+        Make HTTP request to batch embedding API endpoint with automatic batch splitting.
+
+        If a batch fails with HTTP 500 (Ollama panic due to batch too large),
+        automatically splits the batch in half and retries recursively.
 
         Args:
             texts: List of text strings to embed
@@ -168,14 +174,57 @@ class NomicEmbedder(BaseEmbedder):
         if not texts:
             return []
 
+        # Try the batch as-is with retries for transient errors
         try:
-            headers = {"Content-Type": "application/json"}
+            return self._make_single_batch_request(texts)
+        except EmbeddingError as e:
+            # Check if this is a batch size issue (HTTP 500 from Ollama panic)
+            # and we can split the batch further
+            error_msg = str(e).lower()
+            is_batch_size_error = (
+                "status=500" in error_msg
+                or "status 500" in error_msg
+                or 'status_code": 500' in error_msg
+            )
+            can_split = len(texts) > 1
 
-            if self.api_key:
-                headers["Authorization"] = f"Bearer {self.api_key}"
+            if is_batch_size_error and can_split:
+                # Split batch and retry recursively
+                logger.warning(
+                    f"Batch of {len(texts)} texts too large, splitting in half and retrying"
+                )
+                mid = len(texts) // 2
+                left_embeddings = self._make_batch_embedding_request(texts[:mid])
+                right_embeddings = self._make_batch_embedding_request(texts[mid:])
+                return left_embeddings + right_embeddings
 
-            payload = {"model": self.model_name, "input": texts}
+            # Can't split further or not a batch size error - re-raise
+            raise
 
+    def _make_single_batch_request(self, texts: List[str]) -> List[List[float]]:
+        """
+        Internal method that makes the actual HTTP request to the batch API.
+
+        This method contains the HTTP request logic and is called by
+        _make_batch_embedding_request which handles retries and splitting.
+
+        Args:
+            texts: List of text strings to embed
+
+        Returns:
+            List of embedding vectors (list of floats)
+
+        Raises:
+            EmbeddingError: If the API request fails or returns unexpected format
+        """
+        headers = {"Content-Type": "application/json"}
+
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        payload = {"model": self.model_name, "input": texts}
+
+        try:
             with httpx.Client(timeout=self.timeout) as client:
                 response = client.post(
                     self.batch_embed_url, headers=headers, json=payload

@@ -1,9 +1,8 @@
 import pickle
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
-
 from app.chunking.base import Chunk
 from app.core.exceptions import VectorDBError
 from app.vector_db.base import BaseVectorDB
@@ -90,7 +89,7 @@ class FAISSVectorDB(BaseVectorDB):
             raise VectorDBError(f"Failed to add documents: {str(e)}") from e
 
     def search(
-        self, document_id: str, query_embedding: np.ndarray, top_k: int = 5
+        self, document_id: str, query_embedding: np.ndarray, top_k: int = 5, chunk_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         try:
             dimension = query_embedding.shape[0]
@@ -145,3 +144,9 @@ class FAISSVectorDB(BaseVectorDB):
     def document_exists(self, document_id: str) -> bool:
         index_path = self._get_index_path(document_id)
         return index_path.exists()
+
+    def get_all_chunks(
+        self, document_id: str, chunk_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Not implemented for FAISS - Qdrant only for now."""
+        raise NotImplementedError("get_all_chunks is only implemented for Qdrant")

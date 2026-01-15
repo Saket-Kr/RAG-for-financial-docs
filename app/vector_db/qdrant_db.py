@@ -19,7 +19,7 @@ class QdrantVectorDB(BaseVectorDB):
         persist_directory: str = "./data/vector_db",
         collection_name: str = "financial_documents",
         distance_metric: str = "cosine",
-        host: str = "qdrant",
+        host: str = "localhost",
         port: int = 6333,
         use_global_collection: bool = True,
     ):
@@ -98,12 +98,14 @@ class QdrantVectorDB(BaseVectorDB):
                     )
                 )
 
+            # Batch upsert all points in a single request
+            if points:
                 self.client.upsert(collection_name=collection_name, points=points)
         except Exception as e:
             raise VectorDBError(f"Failed to add documents: {str(e)}") from e
 
     def search(
-        self, document_id: str, query_embedding: np.ndarray, top_k: int = 5
+        self, document_id: str, query_embedding: np.ndarray, top_k: int = 5, chunk_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         qmodels = self.qmodels
 
@@ -113,17 +115,28 @@ class QdrantVectorDB(BaseVectorDB):
 
             collection_name = self._get_collection_name(document_id)
 
-            # Build optional filter to restrict to document_id in global collection mode
-            query_filter: Optional[qmodels.Filter] = None
+            # Build filter conditions
+            filter_conditions = []
+
             if self.use_global_collection:
-                query_filter = qmodels.Filter(
-                    must=[
-                        qmodels.FieldCondition(
-                            key="document_id",
-                            match=qmodels.MatchValue(value=document_id),
-                        )
-                    ]
+                filter_conditions.append(
+                    qmodels.FieldCondition(
+                        key="document_id",
+                        match=qmodels.MatchValue(value=document_id),
+                    )
                 )
+
+            # Add chunk_type filter if provided
+            valid_chunk_types = {"text", "table"}
+            if chunk_type and chunk_type.lower() in valid_chunk_types:
+                filter_conditions.append(
+                    qmodels.FieldCondition(
+                        key="chunk_type",
+                        match=qmodels.MatchValue(value=chunk_type.lower()),
+                    )
+                )
+
+            query_filter = qmodels.Filter(must=filter_conditions) if filter_conditions else None
 
             search_result = self.client.search(
                 collection_name=collection_name,
@@ -203,3 +216,65 @@ class QdrantVectorDB(BaseVectorDB):
         except Exception:
             return False
 
+    def get_all_chunks(
+        self, document_id: str, chunk_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve all chunks for a document, optionally filtered by chunk_type.
+        """
+        qmodels = self.qmodels
+
+        try:
+            collection_name = self._get_collection_name(document_id)
+
+            # Build filter for document_id
+            filter_conditions = [
+                qmodels.FieldCondition(
+                    key="document_id",
+                    match=qmodels.MatchValue(value=document_id),
+                )
+            ]
+
+            # Add chunk_type filter if valid
+            valid_chunk_types = {"text", "table"}
+            if chunk_type and chunk_type.lower() in valid_chunk_types:
+                filter_conditions.append(
+                    qmodels.FieldCondition(
+                        key="chunk_type",
+                        match=qmodels.MatchValue(value=chunk_type.lower()),
+                    )
+                )
+
+            query_filter = qmodels.Filter(must=filter_conditions)
+
+            # Scroll through all points with the filter
+            all_results: List[Dict[str, Any]] = []
+            offset = None
+
+            while True:
+                points, next_offset = self.client.scroll(
+                    collection_name=collection_name,
+                    limit=100,
+                    offset=offset,
+                    with_payload=True,
+                    with_vectors=False,
+                    scroll_filter=query_filter,
+                )
+
+                for point in points:
+                    payload = point.payload or {}
+                    all_results.append(
+                        {
+                            "chunk_id": payload.get("chunk_id", point.id),
+                            "text": payload.get("text", ""),
+                            "metadata": payload,
+                        }
+                    )
+
+                if next_offset is None:
+                    break
+                offset = next_offset
+
+            return all_results
+        except Exception as e:
+            raise VectorDBError(f"Failed to retrieve chunks: {str(e)}") from e

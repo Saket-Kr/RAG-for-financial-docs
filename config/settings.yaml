@@ -18,7 +18,7 @@ embeddings:
   type: "nomic_embed"
   model_name: "nomic-embed-text:latest"
   device: "cpu"
-  batch_size: 32
+  batch_size: 8
   dimension: 768
   api_url: "http://localhost:11434"
   api_key: ""

@@ -61,3 +61,16 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     services: Dict[str, str]
+
+
+class ChunkResponse(BaseModel):
+    chunk_id: str
+    text: str
+    metadata: Dict[str, Any]
+
+
+class ChunksResponse(BaseModel):
+    document_id: str
+    chunk_type: Optional[str] = None
+    total_chunks: int
+    chunks: List[ChunkResponse]

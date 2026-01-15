@@ -2,10 +2,10 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import fitz
-
 from app.core.exceptions import ParserError
 from app.parsers.base import BaseParser, DocumentStructure, ParsedDocument, Table
 from app.parsers.table_normalizer import TableNormalizer
+from app.utils.text_cleaner import TextCleaner
 
 
 class PyMuPDFParser(BaseParser):
@@ -20,6 +20,8 @@ class PyMuPDFParser(BaseParser):
             for page_num in range(len(doc)):
                 page = doc[page_num]
                 page_text = page.get_text()
+                # Clean and enhance the extracted text
+                page_text = TextCleaner.clean_text(page_text)
                 text_parts.append(page_text)
 
                 page_tables = self._extract_tables(page)

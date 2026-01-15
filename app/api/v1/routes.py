@@ -1,7 +1,5 @@
 import logging
-
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import JSONResponse
+from typing import Optional
 
 from app.api.dependencies import (
     get_document_service,
@@ -9,6 +7,8 @@ from app.api.dependencies import (
     get_settings,
 )
 from app.api.v1.schemas import (
+    ChunkResponse,
+    ChunksResponse,
     DocumentInfoResponse,
     DocumentStatusResponse,
     DocumentUploadResponse,
@@ -32,6 +32,8 @@ from app.utils.validators import (
     validate_file_size,
     validate_query_text,
 )
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +153,55 @@ async def get_document_info(
     except DocumentNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
+
+
+@router.get("/documents/{document_id}/chunks", response_model=ChunksResponse)
+async def get_document_chunks(
+    document_id: str,
+    chunk_type: Optional[str] = None,
+    document_service: DocumentService = Depends(get_document_service),
+):
+    """
+    Retrieve all chunks for a document.
+
+    Args:
+        document_id: ID of the document
+        chunk_type: Optional filter - "text" or "table". If blank or invalid, returns all chunks.
+    """
+    try:
+        chunks = document_service.get_all_chunks(document_id, chunk_type)
+
+        chunk_responses = [
+            ChunkResponse(
+                chunk_id=chunk["chunk_id"],
+                text=chunk["text"],
+                metadata=chunk.get("metadata", {}),
+            )
+            for chunk in chunks
+        ]
+
+        # Determine the effective chunk_type for response
+        effective_chunk_type = None
+        valid_chunk_types = {"text", "table"}
+        if chunk_type and chunk_type.lower() in valid_chunk_types:
+            effective_chunk_type = chunk_type.lower()
+
+        return ChunksResponse(
+            document_id=document_id,
+            chunk_type=effective_chunk_type,
+            total_chunks=len(chunk_responses),
+            chunks=chunk_responses,
+        )
+    except DocumentNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving chunks: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve chunks",
         )
 
 

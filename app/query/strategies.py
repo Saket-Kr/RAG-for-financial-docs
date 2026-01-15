@@ -1,7 +1,6 @@
 from typing import Any, Dict, List
 
 import numpy as np
-
 from app.chunking.base import Chunk
 from app.core.exceptions import QueryError
 from app.query.base import BaseQueryEngine, QueryResponse
@@ -37,7 +36,7 @@ class RAGStrategy(BaseQueryEngine):
     def __init__(
         self,
         ollama_client: OllamaClient,
-        temperature: float = 0.0,
+        temperature: float = 0.4,
         max_tokens: int = 512,
     ):
         self.ollama_client = ollama_client
@@ -57,13 +56,21 @@ class RAGStrategy(BaseQueryEngine):
             [f"[Source {i+1}]: {chunk.text}" for i, chunk in enumerate(context_chunks)]
         )
 
-        prompt = f"""Based on the following context from a financial document, answer the question accurately and concisely. If the answer cannot be found in the context, say so.
+        prompt = f"""You are answering questions about a financial document. Extract the exact information from the provided context.
 
+IMPORTANT INSTRUCTIONS:
+- For numerical or factual queries, extract the precise value without additional explanation
+- If the format is "Label: Value", extract just the Value when asked about the Label
+- Only say "cannot be found" if the information is truly absent from the context
+- Be concise and direct in your response
+``````````````````````````````````````
+``````````````````````````````````````
 Context:
 {context}
-
+``````````````````````````````````````
 Question: {query}
-
+``````````````````````````````````````
+``````````````````````````````````````
 Answer:"""
 
         try:

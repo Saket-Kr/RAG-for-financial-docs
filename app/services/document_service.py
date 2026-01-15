@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.chunking.factory import ChunkingFactory
 from app.chunking.table_chunker import TableChunker
@@ -111,11 +111,18 @@ class DocumentService:
                 all_chunks.extend(text_chunks)
 
                 if parsed_doc.tables:
+                    logger.info(
+                        f"Found {len(parsed_doc.tables)} table(s) in document {document.id}"
+                    )
                     table_chunker = TableChunker(
                         context_window=self.settings.chunking.chunk_size
                     )
 
                     for table_idx, table in enumerate(parsed_doc.tables):
+                        logger.debug(
+                            f"Processing table {table_idx + 1}/{len(parsed_doc.tables)}: "
+                            f"{len(table.data)} row(s), headers: {table.headers}"
+                        )
                         context_before, context_after, section_title, page_number = (
                             self._extract_table_context(parsed_doc, table, table_idx)
                         )
@@ -129,6 +136,8 @@ class DocumentService:
                             page_number=page_number,
                         )
                         all_chunks.append(table_chunk)
+                else:
+                    logger.info(f"No tables found in document {document.id}")
 
                 if not all_chunks:
                     raise DocumentProcessingError("No chunks generated from document")
@@ -186,10 +195,33 @@ class DocumentService:
                 )
 
             query_embedding = self.embedder.embed_query(query)
+            similarity_threshold = self.settings.query_answering.similarity_threshold
+            top_k = self.settings.query_answering.top_k
 
-            search_results = self.vector_db.search(
-                document_id, query_embedding, top_k=self.settings.query_answering.top_k
+            # Search text and table chunks separately in parallel
+            text_results, table_results = await asyncio.gather(
+                asyncio.to_thread(
+                    self.vector_db.search, document_id, query_embedding, top_k, "text"
+                ),
+                asyncio.to_thread(
+                    self.vector_db.search, document_id, query_embedding, top_k, "table"
+                ),
             )
+
+            # Apply similarity threshold (higher score = more similar)
+            text_results_filtered = [
+                r for r in text_results if r.get("distance", 0) >= similarity_threshold
+            ]
+            table_results_filtered = [
+                r for r in table_results if r.get("distance", 0) >= similarity_threshold
+            ]
+
+            # Take top_k of each type
+            text_results_filtered = text_results_filtered[:top_k]
+            table_results_filtered = table_results_filtered[:top_k]
+
+            # Merge results
+            search_results = text_results_filtered + table_results_filtered
 
             if not search_results:
                 return {
@@ -240,6 +272,28 @@ class DocumentService:
         except Exception as e:
             logger.error(f"Error querying document {document_id}: {str(e)}", exc_info=True)
             raise DocumentProcessingError(f"Failed to query document: {str(e)}") from e
+
+    def get_all_chunks(
+        self, document_id: str, chunk_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieve all chunks for a document, optionally filtered by chunk_type.
+
+        Args:
+            document_id: ID of the document
+            chunk_type: Optional filter ("text" or "table"). If None/invalid, returns all.
+
+        Returns:
+            List of chunk dictionaries with chunk_id, text, and metadata
+
+        Raises:
+            DocumentNotFoundError: If document does not exist
+        """
+        # Verify document exists
+        self.metadata_service.get_document(document_id)
+
+        # Get chunks from vector DB
+        return self.vector_db.get_all_chunks(document_id, chunk_type)
 
     def _extract_table_context(
         self, parsed_doc: ParsedDocument, table: Table, table_index: int

@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class LLMSettings(BaseSettings):
     provider: str = "ollama"
     model: str = "mistral:7b-instruct"
-    base_url: str = "http://ollama:11434"
+    base_url: str = "http://localhost:11434"
     temperature: float = 0.0
     max_tokens: int = 512
     timeout: int = 60
@@ -37,9 +37,9 @@ class EmbeddingSettings(BaseSettings):
     type: str = "nomic_embed"
     model_name: str = "nomic-embed-text:latest"
     device: str = "cpu"
-    batch_size: int = 32
+    batch_size: int = 8
     dimension: int = 768
-    api_url: str = "http://ollama:11434/"
+    api_url: str = "http://localhost:11434"
     api_key: str = ""
 
     model_config = SettingsConfigDict(protected_namespaces=("settings_",))
@@ -50,7 +50,7 @@ class VectorDBSettings(BaseSettings):
     persist_directory: str = "./data/vector_db"
     collection_name: str = "financial_documents"
     distance_metric: str = "cosine"
-    host: str = "qdrant"
+    host: str = "localhost"
     port: int = 6333
     use_global_collection: bool = True
 

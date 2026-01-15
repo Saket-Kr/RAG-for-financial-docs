@@ -2,10 +2,10 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import pdfplumber
-
 from app.core.exceptions import ParserError
 from app.parsers.base import BaseParser, DocumentStructure, ParsedDocument, Table
 from app.parsers.table_normalizer import TableNormalizer
+from app.utils.text_cleaner import TextCleaner
 
 
 class PDFPlumberParser(BaseParser):
@@ -19,6 +19,8 @@ class PDFPlumberParser(BaseParser):
             with pdfplumber.open(file_path) as pdf:
                 for page_num, page in enumerate(pdf.pages, 1):
                     page_text = page.extract_text() or ""
+                    # Clean and enhance the extracted text
+                    page_text = TextCleaner.clean_text(page_text)
                     text_parts.append(page_text)
 
                     page_tables = page.extract_tables()

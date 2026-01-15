@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 from app.core.exceptions import ParserError
 from app.parsers.base import BaseParser, DocumentStructure, ParsedDocument, Table
 from app.parsers.table_normalizer import TableNormalizer
+from app.utils.text_cleaner import TextCleaner
 
 
 class UnstructuredParser(BaseParser):
@@ -61,6 +62,8 @@ class UnstructuredParser(BaseParser):
                         tables.append(table)
 
             full_text = "\n\n".join(text_parts)
+            # Clean and enhance the extracted text
+            full_text = TextCleaner.clean_text(full_text)
 
             structure = DocumentStructure(
                 sections=sections, headers=headers, tables=tables, lists=[]

@@ -2,8 +2,8 @@ import logging
 from typing import Any, Dict, Optional
 
 import httpx
-
 from app.core.exceptions import LLMError
+from app.utils.retry import retry_http
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class OllamaClient:
     def __init__(
         self,
-        base_url: str = "http://ollama:11434",
+        base_url: str = "http://localhost:11434",
         model: str = "mistral:7b-instruct",
         timeout: int = 60,
     ):
@@ -19,6 +19,7 @@ class OllamaClient:
         self.model = model
         self.timeout = timeout
 
+    @retry_http(max_retries=3, initial_backoff=1.0)
     async def generate(
         self, prompt: str, temperature: float = 0.0, max_tokens: int = 512, **kwargs
     ) -> str:
